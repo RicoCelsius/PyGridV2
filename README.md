@@ -9,7 +9,7 @@ To get started with this project, follow these steps:
 1. Clone the repository to your local machine.
 2. Install the required dependencies by running `pip install -r requirements.txt`.
 3. Create a `.env` file in the root directory of the project with your exchange API keys and other configuration options. An example `.env` file is provided in the project's root directory.
-4. Run the bot using `python bot.py`.
+4. Run the bot using `python run.py`.
 
 ## Features
 
