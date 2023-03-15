@@ -2,11 +2,11 @@ import ccxt
 import enums
 import config
 from exchange import Exchange
-
+from mysql_module import Mysql
 
 
 class Order:
-    def __init__(self, pair, order_type, side, quantity):
+    def __init__(self, pair, order_type, side, quantity,price):
         self.pair = pair
         self.order_type = order_type
         self.side = side
@@ -14,6 +14,7 @@ class Order:
         self.status = enums.Status.OPEN
         self.exchange = Exchange().exchange
         self.order_id = None
+        self.price = price
         self.send_order()
 
     def send_order(self):
@@ -22,10 +23,11 @@ class Order:
             'type': self.order_type,
             'side': self.side,
             'amount': self.quantity,
+            'price' : self.price
         }
         order = self.exchange.create_order(**order_params)
         self.order_id = order['id']
-        print(order)
+        Mysql().insert_order(self.pair,self.order_type,self.side,self.quantity,self.status.value,config.EXCHANGE,self.order_id,self.price)
         print('Order placed:', order['id'])
 
     def cancel_order(self):
