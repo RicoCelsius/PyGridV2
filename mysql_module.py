@@ -31,8 +31,9 @@ class Mysql:
                         quantity DECIMAL(20, 10) NOT NULL,
                         status VARCHAR(50) NOT NULL,
                         exchange VARCHAR(50) NOT NULL,
-                        order_id INT,
-                        price DECIMAL(20, 10)
+                        order_id BIGINT,
+                        price DECIMAL(20, 10),
+                        avg_fill_price DECIMAL(20, 10)
                     )
             """)
                 conn.close()
@@ -76,7 +77,6 @@ class Mysql:
             val = (status,)
             self.cursor.execute(sql, val)
             result = self.cursor.fetchall()
-            print(result)
             return result
         except Exception as e:
             print(e)
@@ -85,13 +85,16 @@ class Mysql:
 
 
 
-    def update(self, order_id, status=None):
+    def update(self, order_id, status=None,avg_fill_price=None):
         try:
             update_fields = []
             val = []
             if status is not None:
                 update_fields.append("status = %s")
                 val.append(status)
+            if avg_fill_price is not None:
+                update_fields.append("avg_fill_price = %s")
+                val.append(avg_fill_price)
             val.append(order_id)
             sql = f"UPDATE {TABLE} SET " + ", ".join(update_fields) + " WHERE order_id = %s"
             self.cursor.execute(sql, tuple(val))
