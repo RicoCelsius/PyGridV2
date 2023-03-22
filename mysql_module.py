@@ -33,7 +33,8 @@ class Mysql:
                         exchange VARCHAR(50) NOT NULL,
                         order_id BIGINT,
                         price DECIMAL(20, 10),
-                        avg_fill_price DECIMAL(20, 10)
+                        avg_fill_price DECIMAL(20, 10),
+                        fee DECIMAL(20, 10) DEFAULT 0.00
                     )
             """)
                 conn.close()
@@ -85,7 +86,7 @@ class Mysql:
 
 
 
-    def update(self, order_id, status=None,avg_fill_price=None):
+    def update(self, order_id, status=None,avg_fill_price=None,fee=None):
         try:
             update_fields = []
             val = []
@@ -95,6 +96,9 @@ class Mysql:
             if avg_fill_price is not None:
                 update_fields.append("avg_fill_price = %s")
                 val.append(avg_fill_price)
+            if fee is not None:
+                update_fields.append("fee = %s")
+                val.append(fee)
             val.append(order_id)
             sql = f"UPDATE {TABLE} SET " + ", ".join(update_fields) + " WHERE order_id = %s"
             self.cursor.execute(sql, tuple(val))
