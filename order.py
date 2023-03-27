@@ -10,18 +10,19 @@ exchange = Exchange()
 class Order:
 
     
-    def __init__(self, pair, order_type, side, quantity,price):
+    def __init__(self, pair, order_type, side, quantity,price,extra_ms=''):
         self.pair = pair
         self.order_type = order_type
         self.side = side
-        self.quantity = Decimal(quantity)
+        self.quantity = Decimal(str(quantity))
         self.status = enums.Status.OPEN
         self.exchange = Exchange().exchange
         self.order_id = None
         self.price = price
-        self.send_order()
+        self.extra_msg = extra_ms
+        self.send_order(self.extra_msg)
     
-    def send_order(self):
+    def send_order(self,extra_msg=''):
  
             order_params = {
                 'symbol': self.pair,
@@ -35,8 +36,9 @@ class Order:
             self.order_id = order['id']
            
             Mysql().insert_order(self.pair,self.order_type,self.side,Decimal(self.quantity),self.status.value,config.EXCHANGE,self.order_id,order_params['price'])
-            sendMessage(f'PAIR: {self.pair}\nQUANTITY: {Decimal(self.quantity)}\nSIDE: {self.side}\nPRICE:{self.price}')
+            sendMessage(f'PAIR: {self.pair}\nQUANTITY: {Decimal(self.quantity)}\nSIDE: {self.side}\nPRICE:{self.price}\n{extra_msg}')
             print('Order placed:', order['id'])
+            return order
 
 
 

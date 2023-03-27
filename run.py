@@ -15,6 +15,8 @@ exchange = Exchange()
 #change status buy order to closed
 
 pair = config.PAIR
+cancelled_dust = Decimal(0)
+
 
 
 
@@ -40,12 +42,25 @@ def calculate_quantity():
             return round(quantityInQuote,precision)
         except Exception as e: exception_handler(e)
 
-
-def get_open_orders():
-    try:
+def get_open_orders(side):
         open_orders = Mysql().select_by_status('open')
-        open_buy_orders = [order for order in open_orders if order[3] == 'buy']
-        open_sell_orders = [order for order in open_orders if order[3] == 'sell']
+        open_side_orders = [order for order in open_orders if order[3] == f'{side}']
+        return open_side_orders
+
+
+def sell_dust(minimum_quantity,highest_price):
+    if cancelled_dust > minimum_quantity:
+        global cancelled_dust
+        Order(config.PAIR, config.ORDER_TYPE, 'sell', Decimal(cancelled_dust), highest_price + get_step_price(),'dust order')
+        sendMessage(f'send order {cancelled_dust}')
+        cancelled_dust = Decimal(0)
+
+def check_open_orders():
+    try:
+        
+
+        open_sell_orders = get_open_orders('sell')
+        open_buy_orders = get_open_orders('buy')
         # sort the sell orders by price and retrieve the first 10
         sorted_sell_orders = sorted(open_sell_orders, key=lambda x: x[8])
         top_2_sell_orders = sorted_sell_orders[:2]
@@ -92,56 +107,75 @@ def check_and_update_buy_orders(order):
     except Exception as e: exception_handler(e)
 
 
+def check_threshold(open_buy_orders):
+        print('Checking threshold')
+        highest_price = get_highest_price_in_list(open_buy_orders)
+        v1 = highest_price
+        v2 = get_current_price()
+        percdiff = abs((abs(v1)-abs(v2))/((v1+v2)/2)*100)
+        threshold = percdiff > (config.SPACE_BETWEEN_GRID*2)
+        print(f'Threshold is {threshold}')
+        return True if threshold else False
+        
+def get_highest_price_in_list(open_buy_orders):
+    buy_prices = [order[8] for order in open_buy_orders]
+    highest_price = max(buy_prices)
+    return highest_price
+
+
+
 def cancel_lowest_buy_order_for_range():
     try:
-        open_orders = Mysql().select_by_status('open')
-        open_buy_orders = [order for order in open_orders if order[3] == 'buy']
-    
-        if len(open_buy_orders) != 0:
-            buy_prices = [order[8] for order in open_buy_orders]
-            highest_price = max(buy_prices)
-            v1 = highest_price
-            v2 = get_current_price()
-            percdiff = abs((abs(v1)-abs(v2))/((v1+v2)/2)*100)
-            threshold = percdiff/2 > config.SPACE_BETWEEN_GRID
-            lowest_order = min(open_buy_orders, key=lambda x: x[8])
+        global cancelled_dust
+        open_buy_orders = get_open_orders('buy')
+        if open_buy_orders:
+            threshold = check_threshold(open_buy_orders)
             if threshold:
-                print('CANCELLLING  ORDER')
+                lowest_order = min(open_buy_orders, key=lambda x: x[8])
+                highest_price = get_highest_price_in_list(open_buy_orders)
+                print('Cancelling order')
                 try:
-                    exchange.exchange.cancel_order(str(lowest_order[7]),symbol=config.PAIR)
-                    exchange_response = exchange.exchange.fetchOrder(lowest_order[7],config.PAIR)
+                    exchange.exchange.cancel_order(str(lowest_order[7]), symbol=config.PAIR)
+                    exchange_response = exchange.exchange.fetchOrder(lowest_order[7], config.PAIR)
                     if Decimal(exchange_response['filled']) > 0:
                         filled = exchange_response['filled']
                         sendMessage(f'Order cancelled, but something is filled: {filled}')
-                        Order(config.PAIR,config.ORDER_TYPE,'sell',Decimal(filled),highest_price+get_step_price())
-                        sendMessage('sell order sent')
-                    else:
-                        sendMessage('Cleanly canceled')
-                except Exception as e:
-                    exception_handler(e)
-                    try:
-                        exchange_response = exchange.exchange.fetchOrder(lowest_order[7],config.PAIR)
-                        filled = exchange_response['filled']
-                        status = exchange_response['info']['status']
-                        sendMessage(f'Order couldnt be cancelled, Status is {status}, amount filled: {filled}')
-                        Order(config.PAIR,config.ORDER_TYPE,'sell',Decimal(filled),highest_price+get_step_price())
+                        minimum_quantity = (Decimal(exchange.get_minimal_quantity() + 1)) / Decimal(get_current_price())
+                        cancelled_dust += Decimal(filled)
+                        sendMessage(f'Min qty = {minimum_quantity}, cancelled dust = {cancelled_dust}')
+                        sell_dust(minimum_quantity,highest_price)
 
-                    except Exception as e: 
-                        sendMessage('clue')
+                            
+                except Exception as e:
+                    try:
+                        exchange_response = exchange.exchange.fetchOrder(lowest_order[7], config.PAIR)
+                        filled = Decimal(exchange_response['filled'])
+                        status = exchange_response['info']['status']
+                        minimum_quantity = (Decimal(exchange.get_minimal_quantity() + 2)) / Decimal(get_current_price())
+                        sendMessage(f"Order couldn't be cancelled, status is {status}, amount filled: {filled}")
+                        cancelled_dust += Decimal(filled)
+                        sendMessage(f'cancelled dust = {cancelled_dust}, min qty = {minimum_quantity}')
+                        sell_dust(minimum_quantity,highest_price)
+
+                    except Exception as e:
                         exception_handler(e)
 
-                quantity = calculate_quantity()
-                Order(config.PAIR,config.ORDER_TYPE,'buy',quantity,(highest_price+get_step_price()))
-                Mysql().update(lowest_order[7],'canceled')
-    except Exception as e: exception_handler(e)
+                Order(config.PAIR, config.ORDER_TYPE, 'buy', calculate_quantity(), highest_price + get_step_price())
+                Mysql().update(lowest_order[7], 'canceled')
+    except Exception as e:
+        exception_handler(e)
+
             
 
 def get_fee(order_id):
-    exchange_response = exchange.exchange.fetchOrder(order_id,config.PAIR)
-    if exchange_response is not None and 'fee' in exchange_response:
-        fee = exchange_response['fee']
-        if fee is None: return 0
-        else: return fee
+    try:
+        exchange_response = exchange.exchange.fetchOrder(order_id,config.PAIR)
+        if exchange_response is not None and 'fee' in exchange_response:
+            fee = Decimal(exchange_response['fee'])
+            return Decimal(0) if fee is None else fee
+    except Exception as e: exception_handler(e)    
+    
+
 
 
 
@@ -217,24 +251,24 @@ def open_orders_below_limit():
           
 
 def check_open_buy_orders_count():
-        try:
-            open_orders = Mysql().select_by_status('open')
-            open_buy_orders = [order for order in open_orders if order[3] == 'buy']
-            open_buy_orders_count = len(open_buy_orders)
-            if open_buy_orders_count < config.MAX_OPEN_BUY_ORDERS:
-                quantity = calculate_quantity()
-                Order(config.PAIR,config.ORDER_TYPE,'buy',quantity,get_lowest_price('buy'))
-            else: print(f'Waiting till open buy orders are filled... open orders: {open_buy_orders_count}, maximum: {config.MAX_OPEN_BUY_ORDERS}')
-        except Exception as e: exception_handler(e)
+    try:
+        open_orders = Mysql().select_by_status('open')
+        open_buy_orders = [order for order in open_orders if order[3] == 'buy']
+        open_buy_orders_count = len(open_buy_orders)
+        if open_buy_orders_count < config.MAX_OPEN_BUY_ORDERS:
+            quantity = calculate_quantity()
+            Order(config.PAIR,config.ORDER_TYPE,'buy',quantity,get_lowest_price('buy'))
+        else: print(f'Waiting till open buy orders are filled... open orders: {open_buy_orders_count}, maximum: {config.MAX_OPEN_BUY_ORDERS}')
+    except Exception as e: exception_handler(e)
         
 
-def job():
-    while True:
-     get_open_orders()
-     check_open_buy_orders_count()
-     cancel_lowest_buy_order_for_range()
-     cancel_orders_above_limit()
-job()
+
+while True:
+    check_open_orders()
+    check_open_buy_orders_count()
+    cancel_lowest_buy_order_for_range()
+    cancel_orders_above_limit()
+
 
 
 
