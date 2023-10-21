@@ -1,0 +1,161 @@
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>Agenda</title>
+    <link href="@Url.Content("~/css/tables.css")" rel="stylesheet" type="text/css"/>
+</head>
+
+<body>
+    <table border="5" cellspacing="0" align="center">
+        <!--<caption>Timetable</caption>-->
+        <div class="days">
+        <tr>
+            <td align="center" height="50"
+                width="100">
+                <br>
+                <b>Period/Day</b></br>
+            </td>
+            <td align="center" height="50"
+                width="100">
+                <b>Monday</b>
+            </td>
+            <td align="center" height="50"
+                width="100">
+                <b>Tuesday</b>
+            </td>
+            <td align="center" height="50"
+                width="100">
+                <b>Wednesday</b>
+            </td>
+            <td align="center" height="50"
+                width="100">
+                <b>Thursday</b>
+            </td>
+            <td align="center" height="50"
+                width="100">
+                <b>Friday</b>
+            </td>
+            <td align="center" height="50"
+                width="100">
+                <b>Saturday</b>
+            </td>
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>9:30-10:20</b>
+            </td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">LAB</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Phy</td>
+            <td align="center" height="50">LAB</td>
+            <td align="center" height="50">Eng</td>
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>10:20-11:10</b>
+            </td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">phy</td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Che</td>
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>11:10-12:00</b>
+            </td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">Mat</td>
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>12:00-12:40</b>
+            </td>
+            <td align="center" height="50">Phy</td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Eng</td>
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>12:40-1:30</b>
+            </td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Phy</td>
+            <td align="center" height="50">Che</td>
+
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>1:30-2:20</b>
+            </td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Phy</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">Phy</td>
+
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>2:20-3:10</b>
+            </td>
+            <td align="center" height="50">Phy</td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">Phy</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Che</td>
+
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>3:10-4:00</b>
+            </td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">Phy</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Mat</td>
+
+        </tr>
+        <tr>
+            <td align="center" height="50">
+                <b>4:00-4:50</b>
+            </td>
+            <td align="center" height="50">Phy</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Che</td>
+            <td align="center" height="50">Mat</td>
+            <td align="center" height="50">Eng</td>
+            <td align="center" height="50">Phy</td>
+
+        </tr>
+        </div>
+    </table>
+
+<script>
+        var cells = document.querySelectorAll("td:contains('Phy')");
+        for (var i = 0; i < cells.length; i++) {
+            cells[i].style.backgroundColor = "green";
+        }
+</script>
+
+
+</body>
+</html>

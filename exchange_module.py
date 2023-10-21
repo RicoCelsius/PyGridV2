@@ -41,7 +41,8 @@ class Exchange:
 
 
     def get_minimal_quantity(self):
-        min_notional = self.get_filters()[2]['minNotional']
+        print(self.get_filters())
+        min_notional = self.get_filters()[6]['minNotional']
         return Decimal(min_notional)
 
     def get_price_precision(self):

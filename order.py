@@ -1,7 +1,7 @@
 import ccxt
 import enums
 import config
-from exchange import Exchange
+from exchange_module import Exchange
 from decimal import Decimal
 from telegram_module import sendMessage
 from mysql_module import Mysql
@@ -41,11 +41,3 @@ class Order:
             return order
 
 
-
-    def cancel_order(self):
-        order_params = {
-            'orderId': self.order_id,
-            'symbol': self.order_type,
-        }
-        order = self.exchange.cancel_order(**order_params)
-        print('Order canceled:', order['id'])

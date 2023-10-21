@@ -1,9 +1,8 @@
 from order import Order
-from exchange import Exchange
+from exchange_module import Exchange
 from art import *
 import config
-import threading
-from telegram_module import main,sendMessage
+from telegram_module import sendMessage
 from exception_handler_module import exception_handler
 from decimal import Decimal
 from mysql_module import Mysql
@@ -49,8 +48,9 @@ def get_open_orders(side):
 
 
 def sell_dust(minimum_quantity,highest_price):
+    global cancelled_dust
     if cancelled_dust > minimum_quantity:
-        global cancelled_dust
+        sendMessage('Trying to send order to get rid of dust')
         Order(config.PAIR, config.ORDER_TYPE, 'sell', Decimal(cancelled_dust), highest_price + get_step_price(),'dust order')
         sendMessage(f'send order {cancelled_dust}')
         cancelled_dust = Decimal(0)
@@ -124,6 +124,8 @@ def get_highest_price_in_list(open_buy_orders):
 
 
 
+
+
 def cancel_lowest_buy_order_for_range():
     try:
         global cancelled_dust
@@ -141,7 +143,7 @@ def cancel_lowest_buy_order_for_range():
                         filled = exchange_response['filled']
                         sendMessage(f'Order cancelled, but something is filled: {filled}')
                         minimum_quantity = (Decimal(exchange.get_minimal_quantity() + 1)) / Decimal(get_current_price())
-                        cancelled_dust += Decimal(filled)
+                        cancelled_dust += Decimal(str(filled))
                         sendMessage(f'Min qty = {minimum_quantity}, cancelled dust = {cancelled_dust}')
                         sell_dust(minimum_quantity,highest_price)
 
@@ -149,11 +151,11 @@ def cancel_lowest_buy_order_for_range():
                 except Exception as e:
                     try:
                         exchange_response = exchange.exchange.fetchOrder(lowest_order[7], config.PAIR)
-                        filled = Decimal(exchange_response['filled'])
+                        filled = exchange_response['filled']
                         status = exchange_response['info']['status']
-                        minimum_quantity = (Decimal(exchange.get_minimal_quantity() + 2)) / Decimal(get_current_price())
+                        minimum_quantity = (Decimal(exchange.get_minimal_quantity() + 1)) / Decimal(get_current_price())
                         sendMessage(f"Order couldn't be cancelled, status is {status}, amount filled: {filled}")
-                        cancelled_dust += Decimal(filled)
+                        cancelled_dust += Decimal(str(filled))
                         sendMessage(f'cancelled dust = {cancelled_dust}, min qty = {minimum_quantity}')
                         sell_dust(minimum_quantity,highest_price)
 
@@ -171,8 +173,8 @@ def get_fee(order_id):
     try:
         exchange_response = exchange.exchange.fetchOrder(order_id,config.PAIR)
         if exchange_response is not None and 'fee' in exchange_response:
-            fee = Decimal(exchange_response['fee'])
-            return Decimal(0) if fee is None else fee
+            fee = exchange_response['fee']
+            return 0 if fee is None else fee
     except Exception as e: exception_handler(e)    
     
 
@@ -214,6 +216,7 @@ def total_open_orders():
 def cancel_orders_above_limit():
     # Call the total_open_orders() function with parentheses
     num_open_orders, open_orders = total_open_orders()
+    print(num_open_orders)
     # Assuming that the limit should be 150 or more open orders
     if num_open_orders > config.MAX_OPEN_TOTAL_ORDERS:
         open_sell_orders = [order for order in open_orders if order[3] == 'sell']
@@ -230,6 +233,8 @@ def cancel_orders_above_limit():
     else:
         open_orders_below_limit()
 
+
+
 def open_orders_below_limit():
     try:
         open_orders = Mysql().select_by_status('temporary_canceled')
@@ -241,13 +246,6 @@ def open_orders_below_limit():
             Order(order[1], order[2], order[3], order[4], order[8])
             Mysql().update(order[7],'replaced')
     except Exception as e: exception_handler(e)
-
-
-
-
-        
-
-
           
 
 def check_open_buy_orders_count():
@@ -263,12 +261,13 @@ def check_open_buy_orders_count():
         
 
 
+
 while True:
+    cancel_orders_above_limit()
     check_open_orders()
     check_open_buy_orders_count()
     cancel_lowest_buy_order_for_range()
-    cancel_orders_above_limit()
-
+    
 
 
 
